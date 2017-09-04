@@ -3,13 +3,13 @@ import asyncio
 import random
 import threading
 from twitch import TwitchClient
-import shelve
+import pickle
 import urllib.request, json
 import time
 import html
 import re
 
-users = shelve.open('users.db', writeback=True)
+users = pickle.load(open("users.p", "rb"))
 clientId = "68j3ah92fh1w0mcplw3uub7qpf1mby"
 clientSecret = "0e4yq0gxaf5o7t558bd1rq8o3r10aw"
 oauth = "f4jch2wzx8jc4xhkoy2neqlsr952fk"
@@ -102,7 +102,6 @@ async def event_message(message):
     if userName not in users.keys():
         users[userName] = makeUser(userName)
 
-    print(message.content)
     bits = re.findall('cheer(\d+)', text)
     for bit in bits:
         print("found bits")
@@ -148,7 +147,7 @@ async def event_message(message):
                 users[name]["totalPoints"] += points
             except ValueError:
                 pass
-    users.sync()
+    pickle.dump(users, open("users.p", "wb"))
 
 
 def giveChatPointsHelper():
@@ -170,7 +169,7 @@ def giveChatPointsHelper():
                     users[user]["points"] += minutePoints
                     users[user]["totalPoints"] += minutePoints
                     users[user]["minutes"] += 1
-            users.sync()
+            pickle.dump(users, open("users.p", "wb"))
     threading.Timer(checkFollowersDuration, giveChatPointsHelper).start()
 
 def askQuestion():
