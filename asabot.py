@@ -242,13 +242,13 @@ async def event_message(message):
                 prizes["raffle"]["details"] = parts[2]
                 prizes["raffle"]["fee"] = int(parts[1])
                 prizes["raffle"]["users"] = {}
-                sendMessage("Asevera has created a raffle. Get details with !raffle and enter with !raffle")
+                sendMessage("Asevera has created a raffle. Get details with !raffle, get your # of tickets with !raffletickets, and enter with !enterraffle")
             except Exception:
                 pass
     elif (text == "!giveaway"):
         sendMessage(prizes["giveaway"]["details"] + " - " + str(prizes["giveaway"]["fee"]) + " moonies. Use !entergiveaway to enter.")
     elif (text == "!raffle"):
-        sendMessage(prizes["raffle"]["details"] + " - " + str(prizes["raffle"]["fee"]) + " moonies. Use !enterraffle to enter.")
+        sendMessage(prizes["raffle"]["details"] + " - " + str(prizes["raffle"]["fee"]) + " moonies. Use !enterraffle to enter and !raffletickets for # of tickets")
     elif (text == "!entergiveaway" and users[userName]["points"] >= prizes["giveaway"]["fee"]):
         if (userName in prizes["giveaway"]["users"].keys()):
             sendMessage("@"+userName+" you are already entered in the giveaway")
@@ -260,9 +260,14 @@ async def event_message(message):
             prizes["raffle"]["users"][userName] = prizes["raffle"]["users"][userName]+1
         else:
             prizes["raffle"]["users"][userName] = 1
-        users[userName]["points"] -= prizes["giveaway"]["fee"]
+        users[userName]["points"] -= prizes["raffle"]["fee"]
     elif (text == "!giveawaywinner" and userName == channel):
         selectWinner(prizes["giveaway"]["users"])
+    elif (text == "!raffletickets"):
+        if (userName in prizes["raffle"]["users"]):
+            sendMessage(userName + " has "+str(prizes["raffle"]["users"][userName]) + " tickets")
+        else:
+            sendMessage(userName + " has no raffle tickets")
     elif (text == "!rafflewinner" and userName == channel):
         selectWinner(prizes["raffle"]["users"])
     pickle.dump(prizes, open("prizes.p", "wb"))
@@ -276,11 +281,9 @@ def selectWinner(dict):
         points.append(dict[u])
     randNumber = random.randint(0,sum(points)-1)
     i = 0
-    print(randNumber)
     while randNumber > 0:
         randNumber -= points[i]
         i += 1
-    print(i)
     sendMessage("THE WINNER IS............. @"+names[i])
 
 def giveChatPointsHelper():
