@@ -46,18 +46,18 @@ peopleInChat = []
 ######CONSTANTS######
 #####################
 color = "BlueViolet"
+discordUrl = "https://discord.gg/C736duB"
 instagramUrl = "https://www.instagram.com/asevera_twitch/?hl=en"
 twitterUrl = "https://twitter.com/aseveragaming"
 amazonUrl = "https://www.amazon.com/gp/registry/wishlist/MRWZBVJZNF0T"
-initialQuestionDelay = 60*18
+initialDiscordDelay = 60*40
 initialInstagramDelay = 60*30
 initialTwitterDelay = 60*10
 initialAmazonDelay = 60*20
-questionDelay = 60*18
-answerDelay = int(60*1.5)
-instagramDelay = 60*30
-twitterDelay = 60*30
-amazonDelay = 60*30
+discordDelay = 60*40
+instagramDelay = 60*40
+twitterDelay = 60*40
+amazonDelay = 60*40
 subMultiplier = 1.25
 checkFollowersDuration = 60
 commentPoints = .1
@@ -86,16 +86,6 @@ while len(followers) > 0:
     offset += 100
     followers = client.channels.get_followers(user.id, limit=100, offset=offset)
 
-chatQuestions = []
-with urllib.request.urlopen("https://opentdb.com/api.php?amount=20&category=15") as url:
-    data = json.loads(url.read().decode())
-    questions = data["results"]
-    for question in questions:
-        answers = [html.unescape(question["correct_answer"])]
-        for ans in question["incorrect_answers"]:
-            answers.append(html.unescape(ans))
-        chatQuestions.append([html.unescape(question["question"]),
-                              answers])
 def makeUser(name):
     userDict = {}
     userDict["name"] = name
@@ -284,7 +274,10 @@ def selectWinner(dict):
     while randNumber > 0:
         randNumber -= points[i]
         i += 1
-    sendMessage("THE WINNER IS............. @"+names[i])
+    if names[i] == "meowsymister":
+        selectWinner(dict)
+    else:
+        sendMessage("THE WINNER IS............. @"+names[i])
 
 def giveChatPointsHelper():
     stream = client.streams.get_stream_by_user(user.id, stream_type='all')
@@ -315,23 +308,6 @@ def giveChatPointsHelper():
             pickle.dump(users, open("users.p", "wb"))
     threading.Timer(checkFollowersDuration, giveChatPointsHelper).start()
 
-def askQuestion():
-    question = chatQuestions[0]
-    sendMessage(question[0])
-    answers = question[1][:]
-    random.shuffle(answers)
-    options = ""
-    i = 0
-    for ans in answers:
-        i += 1
-        options += " " + str(i)+". " + ans
-    sendMessage(options)
-    threading.Timer(questionDelay, askQuestion).start()
-    threading.Timer(answerDelay, sendAnswer).start()
-def sendAnswer():
-    question = chatQuestions.pop(0)
-    sendMessage(question[1][0])
-
 def checkFollowersHelper():
     followers = client.channels.get_followers(user.id)
     for follower in followers:
@@ -343,6 +319,9 @@ def checkFollowersHelper():
 def twitterHelper():
     sendMessage("Follow Asevera's Twitter for stream notifications!  "+twitterUrl)
     threading.Timer(twitterDelay, twitterHelper).start()
+def discordHelper():
+    sendMessage("Come hang out on discord!!!  "+discordUrl)
+    threading.Timer(discordDelay, discordHelper).start()
 def instagramHelper():
     sendMessage("Check out Asevera's instagram. She appreciates the support :)  "+instagramUrl)
     threading.Timer(instagramDelay, instagramHelper).start()
@@ -356,6 +335,8 @@ def twitter():
     threading.Timer(initialTwitterDelay, twitterHelper).start()
 def instagram():
     threading.Timer(initialInstagramDelay, instagramHelper).start()
+def discord():
+    threading.Timer(initialDiscordDelay, discordHelper).start()
 def checkFollowers():
     threading.Timer(checkFollowersDuration, checkFollowersHelper).start()
 def giveChatPoints():
@@ -364,10 +345,8 @@ def amazon():
     threading.Timer(initialAmazonDelay, amazonHelper).start()
 def setColor():
     threading.Timer(30, setColorHelper).start()
-def postQuestion():
-    threading.Timer(initialQuestionDelay, askQuestion).start()
 
-postQuestion()
+discord()
 instagram()
 twitter()
 amazon()

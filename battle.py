@@ -1,0 +1,5 @@
+armor  = [["rag", 0], ["leather", 5], ["copper", 10], ["silver", 15], ["gold", 20], ["diamond", 25], ["lunar", 30], ["solar", 35], ["celestial", 40]]
+pants  = [["rag", 0], ["leather", 3], ["copper", 6], ["silver", 9], ["gold", 20], ["diamond", 25], ["lunar", 30], ["solar", 35], ["celestial", 40]]
+helmet = [["rag", 0], ["leather", 3], ["copper", 6], ["silver", 9], ["gold", 20], ["diamond", 25], ["lunar", 30], ["solar", 35], ["celestial", 40]]
+boots  = [["rag", 0], ["leather", 2], ["copper", 4], ["silver", 6], ["gold", 20], ["diamond", 25], ["lunar", 30], ["solar", 35], ["celestial", 40]]
+gloves = [["rag", 0], ["leather", 2], ["copper", 4], ["silver", 6], ["gold", 20], ["diamond", 25], ["lunar", 30], ["solar", 35], ["celestial", 40]]
