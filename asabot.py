@@ -9,7 +9,7 @@ import urllib.request, json
 import html
 import re
 
-
+#with urllib.request.urlopen("https://tmi.twitch.tv/group/user/"+channel+"/chatters") as url:
 
 try:
     prizes = pickle.load(open("prizes.p", "rb"))
@@ -35,6 +35,7 @@ chatoauth = "oauth:cpbspovyrt2s9hrny5a3p1slrtbktm"
 channel = "asevera"
 followersDict = {}
 peopleInChat = []
+dances = []
 
 #300 feed freya
 #2500 pick a costume
@@ -65,26 +66,37 @@ minutePoints = 2
 gambleOdds = 1.0/3
 gambleRewardMultiplier = 2
 bitValue = .5
-feedFreyaPoints = 250
+dancePoints = 50
+feedFreyaPoints = 300
+beanPoints = 800
 costumePoints = 2000
 calligraphyPoints = 5000
-dancePoints = 10000
+dancePoints = 50
 
 client = TwitchClient(client_id=clientId, oauth_token=oauth)
+
 user = client.users.translate_usernames_to_ids([channel])[0]
 subscribers = client.channels.get_subscribers(user.id)
 subNames = []
-print(len(subscribers))
 for sub in subscribers:
     subNames.append(sub["user"]["name"])
+print(len(subNames))
 
 offset = 0
 followers = client.channels.get_followers(user.id, limit=100, offset=offset)
+totalFollowers = 0
 while len(followers) > 0:
     for follower in followers:
-        followersDict[follower["user"]["name"]] = ""
+        userInfo = {}
+        userInfo["order"] = totalFollowers
+        userInfo["date"] = follower["created_at"]
+        followersDict[follower["user"]["name"]] = userInfo
+        totalFollowers = totalFollowers+1
     offset += 100
     followers = client.channels.get_followers(user.id, limit=100, offset=offset)
+
+for follower in followersDict:
+    followersDict[follower]["order"] = -1*(followersDict[follower]["order"]-totalFollowers)
 
 def makeUser(name):
     userDict = {}
@@ -163,10 +175,12 @@ async def event_message(message):
             printValue += v[1] + "|" + str(v[0])+" - "
         sendMessage(printValue)
     elif (text == "!commands"):
-        res = "!comments !moonies !totalmoonies !minutes !bits !why !leaders !ranks !rank !feedfreya (300 moonies) !costume (2500 moonies) !calligraphy (5000 moonies)"
+        res = "!comments !moonies !totalmoonies !minutes !bits !why !dr !nd !dl !leaders !ranks !rank !feedfreya (300 moonies) !bean (800 moonies) !costume (2500 moonies) !calligraphy (5000 moonies)"
         sendMessage(res)
     elif (text == "!comments"):
         sendMessage(userName + " has sent "+str(int(users[userName]["comments"]))+" messages")
+    elif (text == "!discord"):
+        sendMessage(discordUrl)
     elif (text == "!minutes"):
         sendMessage(userName + " has spent " + str(int(users[userName]["minutes"])) + " minutes on this channel")
     elif (text == "!why"):
@@ -178,6 +192,10 @@ async def event_message(message):
     elif (text == "!feedfreya" and users[userName]["points"] > feedFreyaPoints):
         users[userName]["points"] -= feedFreyaPoints
         sendMessage("@asevera. "+ userName + " has requested that you feed Lady Freya")
+    elif (text == "!bean" and users[userName]["points"] > beanPoints):
+        users[userName]["points"] -= beanPoints
+        #sendMessage("NO MORE FOR THE LOVE OF GOD")
+        sendMessage("@asevera. " + userName + " wants you to test your luck with a round of bean boozled")
     elif (text == "!ranks"):
         res = ""
         for rank in ranks:
@@ -198,6 +216,28 @@ async def event_message(message):
     elif (text == "!calligraphy" and users[userName]["points"] > calligraphyPoints):
         users[userName]["points"] -= calligraphyPoints
         sendMessage("@asevera. " + userName + " has requested masterful calligraphy")
+    elif (text.startswith("!dr ") and users[userName]["points"] > dancePoints):
+        dances.append([text[4:], userName])
+        sendMessage(dances[-1][0] + " has been added")
+    elif (text == "!justdance"):
+        sendMessage("http://justdance.wikia.com/wiki/Just_Dance_Unlimited")
+    elif (text == "!dl"):
+        danceList = ""
+        for d in dances:
+            danceList += ", "+" - ".join(d)
+        sendMessage(danceList[2:])
+    elif (text == "!nd" and userName == channel):
+        dance = dances.pop(0)
+        users[dance[1]]["points"] -= dancePoints
+        sendMessage(dance[0])
+    elif (text == "!when"):
+        if (userName in followersDict):
+            sendMessage("You were follower #"
+                        +str(followersDict[userName]["order"])
+                        + " - "
+                        +str(followersDict[userName]["date"]))
+    elif (text.startswith("!so ")):
+        shoutout(text.split(" ")[1].replace('@',''))
     elif (text == "!dance"):
         users[userName]["points"] -= dancePoints
         sendMessage("@asevera. " + userName + " has requested a whimsical boogie")
@@ -216,7 +256,6 @@ async def event_message(message):
                 pass
     elif (text.startswith("!giveaway ") and userName == channel):
         parts = text.split(" ",2)
-        print(parts)
         if (len(parts) == 3):
             try:
                 prizes["giveaway"]["details"] = parts[2]
@@ -263,6 +302,14 @@ async def event_message(message):
     pickle.dump(prizes, open("prizes.p", "wb"))
     pickle.dump(users, open("users.p", "wb"))
 
+def shoutout(name):
+    persons = client.users.translate_usernames_to_ids([name])
+    if len(persons) > 0:
+        person = persons[0]
+        personChannel = client.channels.get_by_id(person.id)
+        sendMessage(personChannel["display_name"] + " has graced us with their presence. "
+                                              + "They come from the land of " + str(personChannel["game"])
+                                              + ". Show them some of our unparalleled moon patrol love")
 def selectWinner(dict):
     names = []
     points = []
@@ -282,30 +329,33 @@ def selectWinner(dict):
 def giveChatPointsHelper():
     stream = client.streams.get_stream_by_user(user.id, stream_type='all')
     if stream != None:
-        with urllib.request.urlopen("https://tmi.twitch.tv/group/user/"+channel+"/chatters") as url:
-            data = json.loads(url.read().decode())
-            chatters = data["chatters"]["viewers"]
-            moderators = data["chatters"]["moderators"]
-            if "moobot" in moderators: moderators.remove("moobot")
-            if "brave_little_bot" in moderators: moderators.remove("brave_little_bot")
-            total = chatters + moderators
-            peopleInChat = total
-            for u in total:
-                u = str(u)
-                multiplier = 1
-                if u in subNames:
-                    multiplier = subMultiplier
-                if u == 'meowsymister':
-                    multiplier = .7
+        try:
+            with urllib.request.urlopen("https://tmi.twitch.tv/group/user/"+channel+"/chatters") as url:
+                data = json.loads(url.read().decode())
+                chatters = data["chatters"]["viewers"]
+                moderators = data["chatters"]["moderators"]
+                if "moobot" in moderators: moderators.remove("moobot")
+                if "brave_little_bot" in moderators: moderators.remove("brave_little_bot")
+                total = chatters + moderators
+                peopleInChat = total
+                for u in total:
+                    u = str(u)
+                    multiplier = 1
+                    if u in subNames:
+                        multiplier = subMultiplier
+                    if u == 'meowsymister':
+                        multiplier = .7
 
-                if u not in users.keys():
-                    userEntry = makeUser(u)
-                    users[u] = userEntry
-                else:
-                    users[u]["points"] += minutePoints*multiplier
-                    users[u]["totalPoints"] += minutePoints*multiplier
-                    users[u]["minutes"] += 1
-            pickle.dump(users, open("users.p", "wb"))
+                    if u not in users.keys():
+                        userEntry = makeUser(u)
+                        users[u] = userEntry
+                    else:
+                        users[u]["points"] += minutePoints*multiplier
+                        users[u]["totalPoints"] += minutePoints*multiplier
+                        users[u]["minutes"] += 1
+                pickle.dump(users, open("users.p", "wb"))
+        except:
+            pass
     threading.Timer(checkFollowersDuration, giveChatPointsHelper).start()
 
 def checkFollowersHelper():
@@ -355,4 +405,3 @@ checkFollowers()
 setColor()
 
 bot.start()
-print("hello")
