@@ -6,8 +6,8 @@ import threading
 from twitch import TwitchClient
 import pickle
 import urllib.request, json
-import html
 import re
+import pygame
 
 #with urllib.request.urlopen("https://tmi.twitch.tv/group/user/"+channel+"/chatters") as url:
 
@@ -17,6 +17,7 @@ except (FileNotFoundError) as e:
     prizes = {}
     prizes["giveaway"] = {}
     prizes["raffle"] = {}
+    prizes["pot"] = 0
     prizes["giveaway"]["details"] = "There is currently no giveaway happening"
     prizes["raffle"]["details"] = "There is currently no lottery happening"
     prizes["giveaway"]["fee"] = 0
@@ -26,6 +27,11 @@ except (FileNotFoundError) as e:
 
     pickle.dump(prizes, open("prizes.p", "wb"))
 
+if ("pot" not in prizes):
+    prizes["pot"] = 0
+    pickle.dump(prizes, open("prizes.p", "wb"))
+
+pygame.mixer.init()
 ranks = [("Crawler",0), ("Land Soldier",130), ("Sky Warrior",650), ("Space Captain",2000), ("Moon King",5000), ("Solar Guardian",10000), ("Galactic Overlord",20000), ("Universe Conquerer",50000), ("Master of the Multiverse",100000), ("Freya",1000000)]
 users = pickle.load(open("users.p", "rb"))
 clientId = "68j3ah92fh1w0mcplw3uub7qpf1mby"
@@ -36,12 +42,6 @@ channel = "asevera"
 followersDict = {}
 peopleInChat = []
 dances = []
-
-#300 feed freya
-#2500 pick a costume
-#5000 asa will write your name or other small phrase in calligraphy
-#10000 asa will dance a dance of your choosing
-#YMCA, Macarena, watch me whip, thriller, chicken dance, the hustle
 
 #####################
 ######CONSTANTS######
@@ -72,15 +72,22 @@ beanPoints = 800
 costumePoints = 2000
 calligraphyPoints = 5000
 dancePoints = 50
-
+allChatters = []
 client = TwitchClient(client_id=clientId, oauth_token=oauth)
 
+duel = {}
+duelPoints = 100
+
+offset = 0
 user = client.users.translate_usernames_to_ids([channel])[0]
-subscribers = client.channels.get_subscribers(user.id)
-subNames = []
-for sub in subscribers:
-    subNames.append(sub["user"]["name"])
-print(len(subNames))
+subscribers = client.channels.get_subscribers(user.id, limit=100, offset=offset)
+subNames = {}
+while len(subscribers) > 0:
+    for sub in subscribers:
+        print(sub["user"]["name"])
+        subNames[sub["user"]["name"]] = ""
+    offset += 100
+    subscribers = client.channels.get_subscribers(user.id, limit=100, offset=offset)
 
 offset = 0
 followers = client.channels.get_followers(user.id, limit=100, offset=offset)
@@ -93,7 +100,10 @@ while len(followers) > 0:
         followersDict[follower["user"]["name"]] = userInfo
         totalFollowers = totalFollowers+1
     offset += 100
-    followers = client.channels.get_followers(user.id, limit=100, offset=offset)
+    if len(followers) == 100:
+        followers = client.channels.get_followers(user.id, limit=100, offset=offset)
+    else:
+        followers = []
 
 for follower in followersDict:
     followersDict[follower]["order"] = -1*(followersDict[follower]["order"]-totalFollowers)
@@ -108,7 +118,19 @@ def makeUser(name):
     userDict["totalPoints"] = minutePoints
     return userDict
 
+scarySounds = ["scary1.wav", "scary2.wav",
+               "scary4.wav",
+               "scary7.wav", "scary8.wav",
+               "scary10.wav", "scary11.wav",
+               "scary13.wav"]
 
+def playScarySound():
+    effect = pygame.mixer.Sound(random.choice(scarySounds))
+    effect.play()
+    print("scream played")
+
+
+playScarySound()
 
 # Use the pre-made CommandBot, to handle messages yourself, use asynctwitch.Bot and handle event_message.
 bot = asynctwitch.CommandBot(
@@ -117,16 +139,19 @@ bot = asynctwitch.CommandBot(
     channel = "asevera",
     prefix = "!",
 )
+
 def sendMessage(message):
     for i in (bot.say(channel,"/me "+message)):
         continue
 
-
-@asyncio.coroutine
-def event_subscribe(self, message, tags):
+@bot.override
+def event_subscribe(message, tags):
+    print("hello subscriber")
     userName = message.author.name
-    subNames.append(userName)
+    subNames[userName]
     sendMessage(userName + ", thanks for the sub. Asevera really appreciates the support. Much love <3")
+    playScarySound()
+    yield
 
 @bot.override
 async def event_message(message):
@@ -149,9 +174,10 @@ async def event_message(message):
            re.findall('yohiyo(\d+)', text) + \
            re.findall('pjsalt(\d+)', text)
     for bit in bits:
+        print(bit)
+        if int(bit) > 1:
+            playScarySound()
         users[userName]["bits"] += int(bit)
-        users[userName]["points"] += int(bit)*bitValue
-        users[userName]["totalPoints"] += int(bit)*bitValue
 
     multiplier = 1
     if userName in subNames:
@@ -183,15 +209,48 @@ async def event_message(message):
         sendMessage(discordUrl)
     elif (text == "!minutes"):
         sendMessage(userName + " has spent " + str(int(users[userName]["minutes"])) + " minutes on this channel")
+    elif (text == "!mooniesforall" and userName == channel):
+        for p in peopleInChat:
+            users[p]["points"] += 200
+            users[p]["totalPoints"] += 200
+        sendMessage("Everyone enjoy your 200 moonies")
+    elif (text.startswith("!duel ")):
+        other = text.split(" ")[1]
+        if other[0] == "@":
+            other = other[1:]
+        duel[userName] = other
+        if other in duel and duel[other] == userName:
+            duel[userName] = "nothing"
+            duel[other] = "nothing"
+            r = random.uniform(0,1)
+            print(r)
+            users[other]["points"] -= duelPoints
+            users[other]["totalPoints"] -= duelPoints
+            users[userName]["points"] -= duelPoints
+            users[userName]["totalPoints"] -= duelPoints
+            if (r <0.45):
+                users[userName]["points"] += 2*duelPoints
+                users[userName]["totalPoints"] += 2*duelPoints
+                sendMessage(userName + " wins the duel")
+            elif (r>.55):
+                users[other]["points"] += 2*duelPoints
+                users[other]["totalPoints"] += 2*duelPoints
+                sendMessage(other + " wins the duel")
+            else:
+                sendMessage("It's a double fatality. You both lose")
+    elif (text == "!pot"):
+        sendMessage("The pot currently has: $"+str(prizes["pot"]))
+    elif (text == "!potadd" and userName == channel):
+        prizes["pot"] += 10
+        sendMessage("$10 added to pot")
     elif (text == "!why"):
         sendMessage(sentence.makeWhy(peopleInChat))
     elif (text == "!bits"):
         sendMessage(userName + " has given " + str(int(users[userName]["bits"])) + " bits")
     elif (text == "!feedasevera"):
         sendMessage("Hey Asevera!!! "+userName + " would liek you to eat some yummies :)")
-    elif (text == "!feedfreya" and users[userName]["points"] > feedFreyaPoints):
-        users[userName]["points"] -= feedFreyaPoints
-        sendMessage("@asevera. "+ userName + " has requested that you feed Lady Freya")
+    elif (text == "!feedfreya"):
+        sendMessage("R.I.P Freya cam :(")
     elif (text == "!bean" and users[userName]["points"] > beanPoints):
         users[userName]["points"] -= beanPoints
         #sendMessage("NO MORE FOR THE LOVE OF GOD")
@@ -220,16 +279,24 @@ async def event_message(message):
         dances.append([text[4:], userName])
         sendMessage(dances[-1][0] + " has been added")
     elif (text == "!justdance"):
-        sendMessage("http://justdance.wikia.com/wiki/Just_Dance_Unlimited")
+        sendMessage("!moonies to see your moonies (you get 2/min). !dr <song name> to request (costs 50 moonies). Song list: http://justdance.wikia.com/wiki/Just_Dance_Unlimited")
     elif (text == "!dl"):
         danceList = ""
         for d in dances:
             danceList += ", "+" - ".join(d)
         sendMessage(danceList[2:])
+    elif (text == "!jensen"):
+        sendMessage("https://bit.ly/2wEvke3")
+    elif (text == "!zook"):
+        sendMessage("https://bit.ly/2PUIo7Q")
+    elif (text == "!ed"):
+        sendMessage("https://gyazo.com/f4b54f3e6e9caecb959fa7ef864843b4")
     elif (text == "!nd" and userName == channel):
         dance = dances.pop(0)
         users[dance[1]]["points"] -= dancePoints
         sendMessage(dance[0])
+    elif (text == "!freyaspam"):
+        sendMessage("aseverFreya "*random.randint(0,40))
     elif (text == "!when"):
         if (userName in followersDict):
             sendMessage("You were follower #"
@@ -327,6 +394,7 @@ def selectWinner(dict):
         sendMessage("THE WINNER IS............. @"+names[i])
 
 def giveChatPointsHelper():
+    global peopleInChat
     stream = client.streams.get_stream_by_user(user.id, stream_type='all')
     if stream != None:
         try:
