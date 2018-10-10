@@ -111,9 +111,8 @@ scarySounds = ["scary1.wav", "scary2.wav",
                "scary13.wav"]
 
 def playScarySound():
-    """effect = pygame.mixer.Sound(random.choice(scarySounds))
+    effect = pygame.mixer.Sound(random.choice(scarySounds))
     effect.play()
-    """
     print("scream played")
 
 
@@ -422,13 +421,14 @@ def checkFollowersHelper():
             followersDict[followerName] = ""
         req = urllib.request.Request("https://www.twitchalerts.com/api/donations?access_token=FF5B9B46DA0B6A302D83",
                                      headers={'User-Agent': 'Mozilla/5.0'})
-    data = json.loads(urllib.request.urlopen(req).read().decode('utf-8'))
+    """data = json.loads(urllib.request.urlopen(req).read().decode('utf-8'))
     for d in data["donations"]:
         if d["id"] not in donationsDict:
             donationsDict[d["id"]] = ""
             if float(d["amount"]) > 5:
+                pass
                 playScarySound()
-
+    """
     threading.Timer(checkFollowersDuration, checkFollowersHelper).start()
 def twitterHelper():
     sendMessage("Follow Asevera's Twitter for stream notifications!  "+twitterUrl)
