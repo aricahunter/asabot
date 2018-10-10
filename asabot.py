@@ -111,8 +111,9 @@ scarySounds = ["scary1.wav", "scary2.wav",
                "scary13.wav"]
 
 def playScarySound():
-    effect = pygame.mixer.Sound(random.choice(scarySounds))
+    """effect = pygame.mixer.Sound(random.choice(scarySounds))
     effect.play()
+    """
     print("scream played")
 
 
