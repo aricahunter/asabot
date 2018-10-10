@@ -10,26 +10,12 @@ import re
 import pygame
 
 #with urllib.request.urlopen("https://tmi.twitch.tv/group/user/"+channel+"/chatters") as url:
-
-try:
-    prizes = pickle.load(open("prizes.p", "rb"))
-except (FileNotFoundError) as e:
-    prizes = {}
-    prizes["giveaway"] = {}
-    prizes["raffle"] = {}
-    prizes["pot"] = 0
-    prizes["giveaway"]["details"] = "There is currently no giveaway happening"
-    prizes["raffle"]["details"] = "There is currently no lottery happening"
-    prizes["giveaway"]["fee"] = 0
-    prizes["raffle"]["fee"] = 0
-    prizes["giveaway"]["users"] = {}
-    prizes["raffle"]["users"] = {}
-
-    pickle.dump(prizes, open("prizes.p", "wb"))
-
-if ("pot" not in prizes):
-    prizes["pot"] = 0
-    pickle.dump(prizes, open("prizes.p", "wb"))
+prizes = pickle.load(open("prizes.p", "rb"))
+donationsDict = {}
+req = urllib.request.Request("https://www.twitchalerts.com/api/donations?access_token=FF5B9B46DA0B6A302D83", headers={'User-Agent': 'Mozilla/5.0'})
+data = json.loads(urllib.request.urlopen(req).read().decode('utf-8'))
+for d in data["donations"]:
+    donationsDict[d["id"]] = ""
 
 pygame.mixer.init()
 ranks = [("Crawler",0), ("Land Soldier",130), ("Sky Warrior",650), ("Space Captain",2000), ("Moon King",5000), ("Solar Guardian",10000), ("Galactic Overlord",20000), ("Universe Conquerer",50000), ("Master of the Multiverse",100000), ("Freya",1000000)]
@@ -60,9 +46,9 @@ instagramDelay = 60*40
 twitterDelay = 60*40
 amazonDelay = 60*40
 subMultiplier = 1.25
-checkFollowersDuration = 60
+checkFollowersDuration = 120
 commentPoints = .1
-minutePoints = 2
+minutePoints = 4
 gambleOdds = 1.0/3
 gambleRewardMultiplier = 2
 bitValue = .5
@@ -125,13 +111,10 @@ scarySounds = ["scary1.wav", "scary2.wav",
                "scary13.wav"]
 
 def playScarySound():
-    '''effect = pygame.mixer.Sound(random.choice(scarySounds))
+    effect = pygame.mixer.Sound(random.choice(scarySounds))
     effect.play()
-    '''
     print("scream played")
 
-
-playScarySound()
 
 # Use the pre-made CommandBot, to handle messages yourself, use asynctwitch.Bot and handle event_message.
 bot = asynctwitch.CommandBot(
@@ -147,7 +130,6 @@ def sendMessage(message):
 
 @bot.override
 def event_subscribe(message, tags):
-    print("hello subscriber")
     userName = message.author.name
     subNames[userName]
     sendMessage(userName + ", thanks for the sub. Asevera really appreciates the support. Much love <3")
@@ -174,11 +156,13 @@ async def event_message(message):
            re.findall('failfish(\d+)', text) + \
            re.findall('yohiyo(\d+)', text) + \
            re.findall('pjsalt(\d+)', text)
+    amount = 0
     for bit in bits:
         print(bit)
-        if int(bit) > 1:
-            playScarySound()
+        amount += int(bit)
         users[userName]["bits"] += int(bit)
+    if amount >= 500:
+        playScarySound()
 
     multiplier = 1
     if userName in subNames:
@@ -428,12 +412,22 @@ def giveChatPointsHelper():
     threading.Timer(checkFollowersDuration, giveChatPointsHelper).start()
 
 def checkFollowersHelper():
+    global donationsDict
     followers = client.channels.get_followers(user.id)
     for follower in followers:
         followerName = follower["user"]["name"]
         if followerName not in followersDict.keys():
             sendMessage("Hey "+follower["user"]["name"]+"!!! Thanks for the follow :)")
             followersDict[followerName] = ""
+        req = urllib.request.Request("https://www.twitchalerts.com/api/donations?access_token=FF5B9B46DA0B6A302D83",
+                                     headers={'User-Agent': 'Mozilla/5.0'})
+    data = json.loads(urllib.request.urlopen(req).read().decode('utf-8'))
+    for d in data["donations"]:
+        if d["id"] not in donationsDict:
+            donationsDict[d["id"]] = ""
+            if float(d["amount"]) > 5:
+                playScarySound()
+
     threading.Timer(checkFollowersDuration, checkFollowersHelper).start()
 def twitterHelper():
     sendMessage("Follow Asevera's Twitter for stream notifications!  "+twitterUrl)
