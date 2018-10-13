@@ -86,13 +86,15 @@ while len(followers) > 0:
         followersDict[follower["user"]["name"]] = userInfo
         totalFollowers = totalFollowers+1
     offset += 100
-    if len(followers) == 100:
+    print(followers[0])
+    if (len(followers) > 50):
         followers = client.channels.get_followers(user.id, limit=100, offset=offset)
     else:
         followers = []
-
+'''
 for follower in followersDict:
     followersDict[follower]["order"] = -1*(followersDict[follower]["order"]-totalFollowers)
+'''
 
 def makeUser(name):
     userDict = {}
