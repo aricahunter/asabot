@@ -70,7 +70,6 @@ subscribers = client.channels.get_subscribers(user.id, limit=100, offset=offset)
 subNames = {}
 while len(subscribers) > 0:
     for sub in subscribers:
-        print(sub["user"]["name"])
         subNames[sub["user"]["name"]] = ""
     offset += 100
     subscribers = client.channels.get_subscribers(user.id, limit=100, offset=offset)
@@ -86,7 +85,6 @@ while len(followers) > 0:
         followersDict[follower["user"]["name"]] = userInfo
         totalFollowers = totalFollowers+1
     offset += 100
-    print(followers[0])
     if (len(followers) > 50):
         followers = client.channels.get_followers(user.id, limit=100, offset=offset)
     else:
@@ -115,7 +113,6 @@ scarySounds = ["scary1.wav", "scary2.wav",
 def playScarySound():
     effect = pygame.mixer.Sound(random.choice(scarySounds))
     effect.play()
-    print("scream played")
 
 
 # Use the pre-made CommandBot, to handle messages yourself, use asynctwitch.Bot and handle event_message.
@@ -133,7 +130,7 @@ def sendMessage(message):
 @bot.override
 def event_subscribe(message, tags):
     userName = message.author.name
-    subNames[userName]
+    subNames[userName] = ""
     sendMessage(userName + ", thanks for the sub. Asevera really appreciates the support. Much love <3")
     playScarySound()
     yield
@@ -160,7 +157,6 @@ async def event_message(message):
            re.findall('pjsalt(\d+)', text)
     amount = 0
     for bit in bits:
-        print(bit)
         amount += int(bit)
         users[userName]["bits"] += int(bit)
     if amount >= 500:
@@ -210,7 +206,6 @@ async def event_message(message):
             duel[userName] = "nothing"
             duel[other] = "nothing"
             r = random.uniform(0,1)
-            print(r)
             users[other]["points"] -= duelPoints
             users[other]["totalPoints"] -= duelPoints
             users[userName]["points"] -= duelPoints
