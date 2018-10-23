@@ -85,14 +85,12 @@ while len(followers) > 0:
         followersDict[follower["user"]["name"]] = userInfo
         totalFollowers = totalFollowers+1
     offset += 100
-    if (len(followers) > 50):
-        followers = client.channels.get_followers(user.id, limit=100, offset=offset)
-    else:
+    try:
+        followerss = client.channels.get_followers(user.id, limit=100, offset=offset)
+    except:
         followers = []
-'''
 for follower in followersDict:
     followersDict[follower]["order"] = -1*(followersDict[follower]["order"]-totalFollowers)
-'''
 
 def makeUser(name):
     userDict = {}
@@ -225,6 +223,9 @@ async def event_message(message):
     elif (text == "!potadd" and userName == channel):
         prizes["pot"] += 10
         sendMessage("$10 added to pot")
+    elif (text == "!potempty" and userName == channel):
+        prizes["pot"] = 0
+        sendMessage("Pot has been emptied")
     elif (text == "!why"):
         sendMessage(sentence.makeWhy(peopleInChat))
     elif (text == "!bits"):
