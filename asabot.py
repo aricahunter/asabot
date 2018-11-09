@@ -34,8 +34,8 @@ dances = []
 #####################
 color = "BlueViolet"
 discordUrl = "https://discord.gg/C736duB"
-instagramUrl = "https://www.instagram.com/asevera_twitch/?hl=en"
-twitterUrl = "https://twitter.com/aseveragaming"
+instagramUrl = "https://www.instagram.com/asevera_tv/"
+twitterUrl = "https://twitter.com/asevera_tv"
 amazonUrl = "https://www.amazon.com/gp/registry/wishlist/MRWZBVJZNF0T"
 initialDiscordDelay = 60*40
 initialInstagramDelay = 60*30
@@ -74,6 +74,8 @@ while len(subscribers) > 0:
     offset += 100
     subscribers = client.channels.get_subscribers(user.id, limit=100, offset=offset)
 
+print(len(subNames))
+
 offset = 0
 followers = client.channels.get_followers(user.id, limit=100, offset=offset)
 totalFollowers = 0
@@ -109,9 +111,10 @@ scarySounds = ["scary1.wav", "scary2.wav",
                "scary13.wav"]
 
 def playScarySound():
+    """
     effect = pygame.mixer.Sound(random.choice(scarySounds))
     effect.play()
-
+    """
 
 # Use the pre-made CommandBot, to handle messages yourself, use asynctwitch.Bot and handle event_message.
 bot = asynctwitch.CommandBot(
