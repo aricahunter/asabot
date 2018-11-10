@@ -130,11 +130,13 @@ def sendMessage(message):
 
 @bot.override
 def event_subscribe(message, tags):
-    userName = message.author.name
+    print(tags)
+    """userName = message.author.name
     subNames[userName] = ""
     sendMessage(userName + ", thanks for the sub. Asevera really appreciates the support. Much love <3")
     playScarySound()
     yield
+    """
 
 @bot.override
 async def event_message(message):
